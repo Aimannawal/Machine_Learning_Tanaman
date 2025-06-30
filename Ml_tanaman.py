@@ -13,13 +13,14 @@ import uvicorn
 import requests
 from fastapi.middleware.cors import CORSMiddleware
 
-df = pd.read_csv("Crop_recommendation.csv", delimiter=',')
+df = pd.read_excel('dataset.xlsx') 
+df = df.drop(columns=["Tanggal", "Waktu"], errors="ignore")
 
 print("Preview data:\n", df.head())
 print("\nTipe data tiap kolom:\n", df.dtypes)
 print("\nJumlah data kosong per kolom:\n", df.isnull().sum())
 
-cols_to_clean = ['temperature', 'humidity', 'ph']
+cols_to_clean = ['Temperatur', 'Humidity', 'pH']
 
 for col in cols_to_clean:
     df[col] = df[col].astype(str).str.replace('.', '', regex=False).astype(float)
@@ -27,12 +28,12 @@ for col in cols_to_clean:
 print("\nData setelah dibersihkan:\n", df[cols_to_clean].head())
 print("\nTipe data setelah dibersihkan:\n", df[cols_to_clean].dtypes)
 
-label_counts = df['label'].value_counts()
+label_counts = df['Label'].value_counts()
 print("\nDistribusi Label:")
 print(label_counts)
 
-X = df.drop('label', axis=1)
-y = df['label']
+X = df.drop('Label', axis=1)
+y = df['Label']
 
 sss = StratifiedShuffleSplit(n_splits=1, test_size=1/3, random_state=42)
 
@@ -60,7 +61,7 @@ test_distribution = y_test.value_counts().sort_index()
 print(test_distribution)
 
 print("\nVerifikasi proporsi data (training : testing):")
-for label in sorted(df['label'].unique()):
+for label in sorted(df['Label'].unique()):
     total = label_counts[label]
     train = train_distribution.get(label, 0)
     test = test_distribution.get(label, 0)
@@ -147,14 +148,8 @@ print("\nFull Classification Report:")
 print(classification_report(y_test, y_pred))
 
 
-data_baru = pd.DataFrame([{
-    "N": 90,
-    "P": 42,
-    "K": 43,
-    "temperature": 20.87,
-    "humidity": 82.00,
-    "ph": 6.50,
-}])
+fitur_training = ['N', 'P', 'K', 'pH', 'Temperatur', 'Humidity']
+data_baru = pd.DataFrame([[90, 42, 43, 6.50, 20.87, 82.00]], columns=fitur_training)
 
 if best_model == model_scaled:
     data_baru_transformed = scaler.transform(data_baru)
@@ -213,11 +208,12 @@ def predict():
             "N": float(feed["field5"]),
             "P": float(feed["field6"]),
             "K": float(feed["field7"]),
-            "temperature": float(feed["field2"]),
-            "humidity": float(feed["field1"]),
-            "ph": float(feed["field4"]),
+            "Temperatur": float(feed["field2"]),
+            "Humidity": float(feed["field1"]),
+            "pH": float(feed["field4"]),
         }
-        df = pd.DataFrame([data_input])
+        fitur_training = ['N', 'P', 'K', 'pH', 'Temperatur', 'Humidity']
+        df = pd.DataFrame([[data_input[f] for f in fitur_training]], columns=fitur_training)
     except Exception as e:
         return {"error": f"Format data tidak valid: {e}"}
 
